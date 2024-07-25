@@ -3,7 +3,6 @@ matplotlib >= 3.5.0, <= 4.0.0
 mpmath >= 1.0.0
 numpy >= 1.20.0, < 2.0.0
 nvgpu
-plotly >= 5.16, <= 6.0
 psutil
 pylatexenc >= 2.0, <= 3.0
 scipy >= 1.7.0, < 2.0.0
