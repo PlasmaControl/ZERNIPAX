@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 
-from zernipax.backend import fori_loop, jit, jnp, np
+from zernipax.backend import fori_loop, jit, jnp, np, sign
 from zernipax.zernike import fourier, zernike_radial
 
 
@@ -53,25 +53,6 @@ def copy_coeffs(c_old, modes_old, modes_new, c_new=None):
     if c_old.size:
         c_new = fori_loop(0, modes_old.shape[0], body, c_new)
     return c_new
-
-
-def sign(x):
-    """Sign function, but returns 1 for x==0.
-
-    Parameters
-    ----------
-    x : array-like
-        array of input values
-
-    Returns
-    -------
-    y : array-like
-        1 where x>=0, -1 where x<0
-
-    """
-    x = np.atleast_1d(x)
-    y = np.where(x == 0, 1, np.sign(x))
-    return y
 
 
 class _Basis(ABC):

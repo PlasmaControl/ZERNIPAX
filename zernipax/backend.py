@@ -1,6 +1,6 @@
 """Backend functions for zernipax, with options for JAX or regular numpy."""
 
-import os
+import functools
 import warnings
 
 import numpy as np
@@ -8,51 +8,39 @@ from termcolor import colored
 
 from zernipax import config, set_device
 
-if os.environ.get("DESC_BACKEND") == "numpy":
-    jnp = np
-    use_jax = False
-    set_device(kind="cpu")
-    print(
-        "Using numpy backend, version={}, dtype={}".format(
-            np.__version__, np.linspace(0, 1).dtype
-        )
-    )
-else:
-    if config.get("device") is None:
-        set_device("cpu")
-    try:
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            import jax
-            import jax.numpy as jnp
-            import jaxlib
-            from jax import config as jax_config
+if config.get("device") is None:
+    set_device("cpu")
+try:
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        import jax
+        import jax.numpy as jnp
+        import jaxlib
+        from jax import config as jax_config
 
-            jax_config.update("jax_enable_x64", True)
-            if config.get("kind") == "gpu" and len(jax.devices("gpu")) == 0:
-                warnings.warn(
-                    "JAX failed to detect GPU, are you sure you "
-                    + "installed JAX with GPU support?"
-                )
-                set_device("cpu")
-            x = jnp.linspace(0, 5)
-            y = jnp.exp(x)
-        use_jax = True
-        print(
-            f"using JAX backend, jax version={jax.__version__}, "
-            + f"jaxlib version={jaxlib.__version__}, dtype={y.dtype}"
-        )
-        del x, y
-    except ModuleNotFoundError:
-        jnp = np
+        jax_config.update("jax_enable_x64", True)
+        if config.get("kind") == "gpu" and len(jax.devices("gpu")) == 0:
+            warnings.warn(
+                "JAX failed to detect GPU, are you sure you "
+                + "installed JAX with GPU support?"
+            )
+            set_device("cpu")
         x = jnp.linspace(0, 5)
         y = jnp.exp(x)
-        use_jax = False
-        set_device(kind="cpu")
-        warnings.warn(colored("Failed to load JAX", "red"))
-        print(
-            "Using NumPy backend, version={}, dtype={}".format(np.__version__, y.dtype)
-        )
+    use_jax = True
+    print(
+        f"using JAX backend, jax version={jax.__version__}, "
+        + f"jaxlib version={jaxlib.__version__}, dtype={y.dtype}"
+    )
+    del x, y
+except ModuleNotFoundError:
+    jnp = np
+    x = jnp.linspace(0, 5)
+    y = jnp.exp(x)
+    use_jax = False
+    set_device(kind="cpu")
+    warnings.warn(colored("Failed to load JAX", "red"))
+    print("Using NumPy backend, version={}, dtype={}".format(np.__version__, y.dtype))
 print(
     "Using device: {}, with {:.2f} GB available memory".format(
         config.get("device"), config.get("avail_mem")
@@ -116,8 +104,35 @@ if use_jax:  # noqa C901
         y = jnp.where(x == 0, 1, jnp.sign(x))
         return y
 
+    def custom_jvp_with_jit(func):
+        """Decorator for custom_jvp with jit.
+
+        This decorator is specifically with functions that have the same
+        structure as the zernike_radial such as r, l, m, dr, where dr is
+        the static argument.
+        """
+
+        @functools.partial(custom_jvp, nondiff_argnums=(3,))
+        def dummy(r, l, m, dr):
+            return func(r, l, m, dr)
+
+        @dummy.defjvp
+        def _dummy_jvp(x, xdot):
+            """Custom derivative rule for the function.
+
+            This is just the same function called with dx+1.
+            """
+            (r, l, m, dr) = x
+            (rdot, ldot, mdot, drdot) = xdot
+            f = dummy(r, l, m, dr)
+            df = dummy(r, l, m, dr + 1)
+            return f, (df.T * rdot).T + 0 * ldot + 0 * mdot + 0 * drdot
+
+        return jit(dummy, static_argnums=3)
+
 else:
     jit = lambda func, *args, **kwargs: func
+    custom_jvp_with_jit = lambda func, *args, **kwargs: func
     from scipy.special import gammaln  # noqa F401
 
     def put(arr, inds, vals):
