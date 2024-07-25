@@ -112,27 +112,53 @@ if use_jax:  # noqa C901
         the static argument.
         """
 
-        @functools.partial(custom_jvp, nondiff_argnums=(3,))
+        @functools.partial(
+            custom_jvp,
+            nondiff_argnums=(3,),
+        )
         def dummy(r, l, m, dr):
             return func(r, l, m, dr)
 
         @dummy.defjvp
-        def _dummy_jvp(x, xdot):
+        def _dummy_jvp(nondiff_dr, x, xdot):
             """Custom derivative rule for the function.
 
             This is just the same function called with dx+1.
             """
-            (r, l, m, dr) = x
-            (rdot, ldot, mdot, drdot) = xdot
-            f = dummy(r, l, m, dr)
-            df = dummy(r, l, m, dr + 1)
-            return f, (df.T * rdot).T + 0 * ldot + 0 * mdot + 0 * drdot
+            (r, l, m) = x
+            (rdot, ldot, mdot) = xdot
+            f = dummy(r, l, m, nondiff_dr)
+            df = dummy(r, l, m, nondiff_dr + 1)
+            return f, (df.T * rdot).T + 0 * ldot + 0 * mdot
 
         return jit(dummy, static_argnums=3)
+
+    def execute_on_cpu(func):
+        """Decorator to set default device to CPU for a function.
+
+        Parameters
+        ----------
+        func : callable
+            Function to decorate
+
+        Returns
+        -------
+        wrapper : callable
+            Decorated function that will run always on CPU even if
+            there are available GPUs.
+        """
+
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            with jax.default_device(jax.devices("cpu")[0]):
+                return func(*args, **kwargs)
+
+        return wrapper
 
 else:
     jit = lambda func, *args, **kwargs: func
     custom_jvp_with_jit = lambda func, *args, **kwargs: func
+    execute_on_cpu = lambda func: func
     from scipy.special import gammaln  # noqa F401
 
     def put(arr, inds, vals):

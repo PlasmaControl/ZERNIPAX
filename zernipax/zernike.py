@@ -9,6 +9,7 @@ from zernipax.backend import (
     cond,
     custom_jvp,
     custom_jvp_with_jit,
+    execute_on_cpu,
     fori_loop,
     jit,
     jnp,
@@ -33,6 +34,7 @@ def jacobi_poly_single(x, n, alpha, beta=0, P_n1=0, P_n2=0):
     return P_n
 
 
+@execute_on_cpu
 @functools.partial(jit, static_argnums=3)
 def zernike_radial_unique(r, l, m, dr=0):
     """Radial part of zernike polynomials.
@@ -208,6 +210,7 @@ def zernike_radial_unique(r, l, m, dr=0):
     return out
 
 
+@execute_on_cpu
 @functools.partial(jit, static_argnums=3)
 def zernike_radial(r, l, m, dr=0):
     """Radial part of zernike polynomials.
@@ -537,6 +540,7 @@ def zernike_radial_switch(r, l, m, dr=0):
     return switch(dr, branches, r, l, m, dr)
 
 
+@execute_on_cpu
 @custom_jvp_with_jit
 def zernike_radial_jvp(r, l, m, dr=0):
     """Radial part of zernike polynomials.
