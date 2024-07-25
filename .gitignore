@@ -4,3 +4,5 @@ dist/
 zernipax.egg-info/
 *.png
 .pymon
+.pytest_cache/
+.benchmarks/
