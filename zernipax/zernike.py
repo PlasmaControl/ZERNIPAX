@@ -2073,8 +2073,6 @@ def zernike_radial_coeffs(l, m, exact=True):
     Integer representation is exact up to l~54, so leaving `exact` arg as False
     can speed up evaluation with no loss in accuracy
     """
-    from decimal import Decimal, getcontext
-
     l = np.atleast_1d(l).astype(int)
     m = np.atleast_1d(np.abs(m)).astype(int)
     lm = np.vstack([l, m]).T
@@ -2082,12 +2080,6 @@ def zernike_radial_coeffs(l, m, exact=True):
     # only evaluate those
     lms, idx = np.unique(lm, return_inverse=True, axis=0)
 
-    if exact:
-        # Increase the precision of Decimal operations
-        getcontext().prec = 100
-    else:
-        # Use lower precision for not exact calculations
-        getcontext().prec = 15
     npoly = len(lms)
     lmax = np.max(lms[:, 0])
     coeffs = np.zeros((npoly, lmax + 1), dtype=object)
@@ -2096,14 +2088,15 @@ def zernike_radial_coeffs(l, m, exact=True):
         ll = lms[ii, 0]
         mm = lms[ii, 1]
         for s in range(mm, ll + 1, 2):
-            coeffs[ii, s] = Decimal(
-                int((-1) ** ((ll - s) // 2) * factorial((ll + s) // 2))
-            ) / Decimal(
-                int(
-                    factorial((ll - s) // 2)
-                    * factorial((s + mm) // 2)
-                    * factorial((s - mm) // 2)
-                )
+            # Zernike polynomials can also be written in the form of [1] which
+            # states that the coefficients are given by the binomial coefficients
+            # hence they are all integers. So, we can use exact arithmetic with integer
+            # division instead of floating point division.
+            # [1]https://en.wikipedia.org/wiki/Zernike_polynomials#Other_representations
+            coeffs[ii, s] = ((-1) ** ((ll - s) // 2) * factorial((ll + s) // 2)) // (
+                factorial((ll - s) // 2)
+                * factorial((s + mm) // 2)
+                * factorial((s - mm) // 2)
             )
     c = np.fliplr(np.where(lm_even, coeffs, 0))
     if not exact:
