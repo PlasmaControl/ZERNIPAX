@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 from zernipax.backend import np
 from zernipax.grid import LinearGrid
-from zernipax.zernike import fourier, zernike_radial
+from zernipax.zernike import fourier, zernike_radial_cpu
 
 
 def _set_tight_layout(fig):
@@ -172,7 +172,7 @@ def plot_mode(mode, rho=100, theta=100, **kwargs):
 
         fig = plt.figure(figsize=kwargs.get("figsize", (8, 8)))
 
-        radial = zernike_radial(r, L, M)
+        radial = zernike_radial_cpu(r, L, M)
         poloidal = fourier(v, M)
 
         Z = radial * poloidal
@@ -247,7 +247,7 @@ def plot_modes(modes, rho=100, theta=100, **kwargs):
 
         Z = np.zeros((r.size, v.size))
         for l, m in zip(L, M):
-            radial = zernike_radial(r, l, m)
+            radial = zernike_radial_cpu(r, l, m)
             poloidal = fourier(v, m)
             Z += radial * poloidal
         Z = Z / L.size

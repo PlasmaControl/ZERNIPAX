@@ -6,12 +6,9 @@ from zernipax.backend import jax
 from zernipax.zernike import (
     fourier,
     jacobi_poly_single,
-    zernike_radial,
-    zernike_radial_jvp,
-    zernike_radial_old_desc,
+    zernike_radial_cpu,
+    zernike_radial_gpu,
     zernike_radial_poly,
-    zernike_radial_switch,
-    zernike_radial_switch_gpu,
     zernike_radial_unique,
 )
 
@@ -73,10 +70,7 @@ def test_zernike_radial():  # noqa: C901
         for dr in range(max_dr + 1)
     }
     functions = [
-        zernike_radial,
-        zernike_radial_switch,
-        zernike_radial_switch_gpu,
-        zernike_radial_jvp,
+        zernike_radial_cpu,
     ]
     for fun in functions:
         radial = {dr: fun(r, l, m, dr) for dr in range(max_dr + 1)}
@@ -88,7 +82,7 @@ def test_zernike_radial():  # noqa: C901
             )
 
     functions = [
-        zernike_radial_old_desc,
+        zernike_radial_gpu,
         zernike_radial_poly,
     ]
     for fun in functions:
@@ -158,23 +152,13 @@ def test_ad():
     m = np.array([1, 2, 2])
 
     # Functions that can be fully differentiated in forward and reverse mode
-    full = [
-        zernike_radial_switch,
-        zernike_radial_switch_gpu,
-        zernike_radial_jvp,
-    ]
-    for fun in full:
-        _ = fun(r, l, m, 0)
-        _ = jax.jacfwd(fun)(r, l, m, 0)
-        _ = jax.jacrev(fun)(r, l, m, 0)
-
-    _ = zernike_radial_old_desc(r[:, np.newaxis], l, m, 0)
-    _ = jax.jacfwd(zernike_radial_old_desc)(r[:, np.newaxis], l, m, 0)
-    _ = jax.jacrev(zernike_radial_old_desc)(r[:, np.newaxis], l, m, 0)
+    _ = zernike_radial_gpu(r[:, np.newaxis], l, m, 0)
+    _ = jax.jacfwd(zernike_radial_gpu)(r[:, np.newaxis], l, m, 0)
+    _ = jax.jacrev(zernike_radial_gpu)(r[:, np.newaxis], l, m, 0)
 
     # Functions that can be differentiated only in forward mode
     part = [
-        zernike_radial,
+        zernike_radial_cpu,
         zernike_radial_unique,
     ]
     for fun in part:

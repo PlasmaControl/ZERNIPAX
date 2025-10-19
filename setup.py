@@ -23,15 +23,18 @@ setup(
     ),
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/PlasmaControl/FastZernike/",
-    author="Yigit Gunsur Elmacioglu, Rory Conlin, Egemen Kolemen",
+    url="https://github.com/PlasmaControl/ZERNIPAX/",
+    author=(
+        "Yigit Gunsur Elmacioglu, Rory Conlin, Dario Panici, "
+        "Daniel Dudt, Egemen Kolemen"
+    ),
     author_email="PlasmaControl@princeton.edu",
     license="MIT",
     keywords="zernike polynomials, optics, astrophysics, spectral "
     + "simulation, basis, orthogonal polynomials, parallel computing, "
     + "JAX",
-    packages=find_packages(exclude=["tests"]),
+    packages=find_packages(exclude=["tests", "notebooks", "figures"]),
     include_package_data=True,
     install_requires=requirements,
-    python_requires=">=3.9",
+    python_requires=">=3.10",
 )

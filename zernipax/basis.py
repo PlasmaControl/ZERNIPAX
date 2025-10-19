@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 
 from zernipax.backend import fori_loop, jit, jnp, np, sign
-from zernipax.zernike import fourier, zernike_radial
+from zernipax.zernike import fourier, zernike_radial_cpu
 
 
 def flatten_list(x, flatten_tuple=False):
@@ -433,7 +433,7 @@ class ZernikePolynomial(_Basis):
             lm = lm[lmidx]
             m = m[midx]
 
-        radial = zernike_radial(r, lm[:, 0], lm[:, 1], dr=derivatives[0])
+        radial = zernike_radial_cpu(r, lm[:, 0], lm[:, 1], dr=derivatives[0])
         poloidal = fourier(t[:, np.newaxis], m, 1, derivatives[1])
 
         if unique:
@@ -664,7 +664,7 @@ class FourierZernikeBasis(_Basis):
             m = m[midx]
             n = n[nidx]
 
-        radial = zernike_radial(r, lm[:, 0], lm[:, 1], dr=derivatives[0])
+        radial = zernike_radial_cpu(r, lm[:, 0], lm[:, 1], dr=derivatives[0])
         poloidal = fourier(t[:, np.newaxis], m, dt=derivatives[1])
         toroidal = fourier(z[:, np.newaxis], n, NFP=self.NFP, dt=derivatives[2])
         if unique:
