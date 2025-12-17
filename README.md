@@ -21,7 +21,7 @@ pip install jax[cuda12]
 ```
 
 ## Citation
-If you use this repository in you projects, please cite it as:
+If you use this repository in your projects, please cite it as:
 ```
 @article{ELMACIOGLU2025129534,
 title = {ZERNIPAX: A fast and accurate Zernike polynomial calculator in Python},
