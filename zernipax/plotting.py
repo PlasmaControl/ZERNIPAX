@@ -16,13 +16,16 @@ def _set_tight_layout(fig):
         fig.set_layout_engine("tight")
 
 
-def plot_basis(basis, return_data=False, **kwargs):
+def plot_basis(basis, derivative=np.array([0, 0, 0]), return_data=False, **kwargs):
     """Plot basis functions.
 
     Parameters
     ----------
     basis : Basis
         basis to plot
+    derivative : (1,3), optional
+        Order of derivatives to compute in (rho,theta,zeta).
+        Default is [0,0,0] (no derivative).
     return_data : bool
         if True, return the data plotted as well as fig,ax
     **kwargs : dict, optional
@@ -59,6 +62,7 @@ def plot_basis(basis, return_data=False, **kwargs):
 
     """
     title_fontsize = kwargs.pop("title_fontsize", None)
+    no_derivative = (np.array([0, 0, 0]) == derivative).all()
 
     if basis.__class__.__name__ in ["ZernikePolynomial", "FourierZernikeBasis"]:
         lmax = abs(basis.modes[:, 0]).max().astype(int)
@@ -68,35 +72,33 @@ def plot_basis(basis, return_data=False, **kwargs):
         r = grid.nodes[grid.unique_rho_idx, 0]
         v = grid.nodes[grid.unique_theta_idx, 1]
 
-        fig = plt.figure(figsize=kwargs.get("figsize", (3 * mmax, 3 * lmax / 2)))
+        fig = plt.figure(figsize=kwargs.get("figsize", (3 * mmax, 4 * lmax / 2)))
 
         plot_data = {"amplitude": [], "rho": r, "theta": v}
 
         ax = {i: {} for i in range(lmax + 1)}
         ratios = np.ones(2 * (mmax + 1) + 1)
-        ratios[-1] = kwargs.get("cbar_ratio", 0.25)
+        ratios[-1] = kwargs.get("cbar_ratio", 0.15)
         gs = matplotlib.gridspec.GridSpec(
-            lmax + 2, 2 * (mmax + 1) + 1, width_ratios=ratios
+            lmax + 1, 2 * (mmax + 1) + 1, width_ratios=ratios
         )
 
         modes = basis.modes[basis.modes[:, 2] == 0]
         plot_data["l"] = basis.modes[:, 0]
         plot_data["m"] = basis.modes[:, 1]
-        Zs = basis.evaluate(grid.nodes, modes=modes)
+        Zs = basis.evaluate(grid.nodes, modes=modes, derivatives=derivative)
         for i, (l, m) in enumerate(
             zip(modes[:, 0].astype(int), modes[:, 1].astype(int))
         ):
             Z = Zs[:, i].reshape((grid.num_rho, grid.num_theta))
-            ax[l][m] = plt.subplot(
-                gs[l + 1, m + mmax : m + mmax + 2], projection="polar"
-            )
+            ax[l][m] = plt.subplot(gs[l, m + mmax : m + mmax + 2], projection="polar")
             ax[l][m].set_title("$l={}, m={}$".format(l, m))
             ax[l][m].axis("off")
             im = ax[l][m].contourf(
                 v,
                 r,
                 Z,
-                levels=np.linspace(-1, 1, 100),
+                levels=np.linspace(-1, 1, 100) if no_derivative else 100,
                 cmap=kwargs.get("cmap", "coolwarm"),
             )
             plot_data["amplitude"].append(Zs)
@@ -104,7 +106,8 @@ def plot_basis(basis, return_data=False, **kwargs):
         cb_ax = plt.subplot(gs[:, -1])
         plt.subplots_adjust(right=0.8)
         cbar = fig.colorbar(im, cax=cb_ax)
-        cbar.set_ticks(np.linspace(-1, 1, 9))
+        if no_derivative:
+            cbar.set_ticks(np.linspace(-1, 1, 9))
         fig.suptitle(
             "{}, $L={}$, $M={}$, spectral indexing = {}".format(
                 basis.__class__.__name__, basis.L, basis.M, basis.spectral_indexing

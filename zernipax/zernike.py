@@ -207,6 +207,7 @@ def zernike_radial_unique(r, l, m, dr=0):
     return out
 
 
+@execute_on_cpu
 @custom_jvp_with_jit
 def zernike_radial_cpu(r, l, m, dr=0):
     """Radial part of zernike polynomials.

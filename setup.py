@@ -33,7 +33,7 @@ setup(
     keywords="zernike polynomials, optics, astrophysics, spectral "
     + "simulation, basis, orthogonal polynomials, parallel computing, "
     + "JAX",
-    packages=find_packages(exclude=["tests", "notebooks", "figures"]),
+    packages=find_packages(include=["zernipax"]),
     include_package_data=True,
     install_requires=requirements,
     python_requires=">=3.10",
